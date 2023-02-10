@@ -1,6 +1,3 @@
-#![allow(unused_variables)] // TODO(you): remove this lint after implementing this mod
-#![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
-
 mod builder;
 mod iterator;
 
@@ -30,7 +27,7 @@ impl Block {
         let offsets_end = data.len() - SIZEOF_U16;
         let num_entry = (&data[data.len() - SIZEOF_U16..]).get_u16();
         let offsets_begin= data.len() - ((num_entry + 1) as usize) * SIZEOF_U16;
-
+        // decode the data and offsets
         let decode_data = data[..offsets_begin].to_vec();
         let decode_offsets = data[offsets_begin..offsets_end]
             .chunks(SIZEOF_U16)
