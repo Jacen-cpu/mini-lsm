@@ -23,35 +23,6 @@ impl BlockIterator {
             idx: 0,
         }
     }
-    
-    /// help method to seek to
-    fn seek_to(&mut self, idx: usize) {
-        if self.idx >= self.block.offsets.len() {
-            self.key.clear();
-            self.value.clear();
-            return;
-        }
-        let offset = self.block.offsets[idx] as usize;
-        self.seek_to_offset(offset);
-        self.idx = idx;
-    } 
-    
-    /// help method to decord the kv
-    fn seek_to_offset(&mut self, offset: usize) {
-        // get the kv position
-        let key_len = (&self.block.data[offset..]).get_u16();
-        let key_begin = offset + SIZEOF_U16;
-        let key_end = key_begin + key_len as usize;
-        let value_len = (&self.block.data[key_end..]).get_u16();
-        let value_begin = key_end + SIZEOF_U16; 
-        let value_end = value_begin + value_len as usize;
-        // clear the dirty data
-        self.key.clear();
-        self.value.clear();
-        // fill the vec
-        self.key.put(&self.block.data[key_begin..key_end]);
-        self.value.put(&self.block.data[value_begin..value_end]);
-    }
 
     /// Creates a block iterator and seek to the first entry.
     pub fn create_and_seek_to_first(block: Arc<Block>) -> Self {
@@ -75,7 +46,7 @@ impl BlockIterator {
 
     /// Returns the value of the current entry.
     pub fn value(&self) -> &[u8] {
-        debug_assert!(!self.key.is_empty(), "invalid iterator");
+        debug_assert!(!self.value.is_empty(), "invalid iterator");
         &self.value
     }
 
@@ -93,6 +64,35 @@ impl BlockIterator {
     pub fn next(&mut self) {
         self.idx += 1;
         self.seek_to(self.idx);
+    }
+
+    /// help method to seek to
+    fn seek_to(&mut self, idx: usize) {
+        if idx >= self.block.offsets.len() {
+            self.key.clear();
+            self.value.clear();
+            return;
+        }
+        let offset = self.block.offsets[idx] as usize;
+        self.seek_to_offset(offset);
+        self.idx = idx;
+    } 
+
+    /// help method to decord the kv
+    fn seek_to_offset(&mut self, offset: usize) {
+        // get the kv position
+        let key_len = (&self.block.data[offset..]).get_u16();
+        let key_begin = offset + SIZEOF_U16;
+        let key_end = key_begin + key_len as usize;
+        let value_len = (&self.block.data[key_end..]).get_u16();
+        let value_begin = key_end + SIZEOF_U16; 
+        let value_end = value_begin + value_len as usize;
+        // clear the dirty data
+        self.key.clear();
+        self.value.clear();
+        // fill the vec
+        self.key.put(&self.block.data[key_begin..key_end]);
+        self.value.put(&self.block.data[value_begin..value_end]);
     }
 
     /// Seek to the first key that >= `key`.
