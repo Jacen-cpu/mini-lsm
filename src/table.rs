@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 pub use builder::SsTableBuilder;
-use bytes::{Buf, Bytes};
+use bytes::{Buf, Bytes, BufMut};
 pub use iterator::SsTableIterator;
 
 use crate::block::Block;
@@ -27,15 +27,35 @@ impl BlockMeta {
     /// Encode block meta to a buffer.
     pub fn encode_block_meta(
         block_meta: &[BlockMeta],
-        #[allow(clippy::ptr_arg)] // remove this allow after you finish
         buf: &mut Vec<u8>,
     ) {
-        unimplemented!()
+        let mut estimated_size = 0;
+        for meta in block_meta {
+            estimated_size += std::mem::size_of::<u32>();
+            estimated_size += std::mem::size_of::<u16>();
+            estimated_size += meta.first_key.len();
+        }
+        // optimize the space
+        buf.reserve(estimated_size);
+        let original_len = buf.len();
+        for meta in block_meta {
+            buf.put_u32(meta.offset as u32);
+            buf.put_u16(meta.first_key.len() as u16);
+            buf.put_slice(&meta.first_key);
+        }
+        assert_eq!(estimated_size, buf.len() - original_len);
     }
 
     /// Decode block meta from a buffer.
-    pub fn decode_block_meta(buf: impl Buf) -> Vec<BlockMeta> {
-        unimplemented!()
+    pub fn decode_block_meta(mut buf: impl Buf) -> Vec<BlockMeta> {
+        let mut metas: Vec<BlockMeta> = Vec::new();
+        while buf.has_remaining() {
+            let offset = buf.get_u32() as usize;
+            let key_len = buf.get_u16() as usize;
+            let key = buf.copy_to_bytes(key_len);
+            metas.push(BlockMeta { offset: offset, first_key: key });
+        }
+        metas
     }
 }
 
@@ -53,7 +73,7 @@ impl FileObject {
 
     /// Create a new file object (day 2) and write the file to the disk (day 4).
     pub fn create(path: &Path, data: Vec<u8>) -> Result<Self> {
-        unimplemented!()
+        Ok(Self(data.into()))
     }
 
     pub fn open(path: &Path) -> Result<Self> {
@@ -65,6 +85,8 @@ pub struct SsTable {
     file: FileObject,
     block_metas: Vec<BlockMeta>,
     block_meta_offset: usize,
+    id: usize,
+    block_cache: Option<Arc<BlockCache>>,
 }
 
 impl SsTable {

@@ -2,7 +2,7 @@ mod builder;
 mod iterator;
 
 pub use builder::BlockBuilder;
-use bytes::{Bytes, BufMut, Buf};
+use bytes::{Buf, BufMut, Bytes};
 pub use iterator::BlockIterator;
 
 pub const SIZEOF_U16: usize = std::mem::size_of::<u16>();
@@ -26,7 +26,7 @@ impl Block {
     pub fn decode(data: &[u8]) -> Self {
         let offsets_end = data.len() - SIZEOF_U16;
         let num_entry = (&data[data.len() - SIZEOF_U16..]).get_u16();
-        let offsets_begin= data.len() - ((num_entry + 1) as usize) * SIZEOF_U16;
+        let offsets_begin = data.len() - ((num_entry + 1) as usize) * SIZEOF_U16;
         // decode the data and offsets
         let decode_data = data[..offsets_begin].to_vec();
         let decode_offsets = data[offsets_begin..offsets_end]

@@ -1,10 +1,10 @@
 #![allow(unused_variables)] // TODO(you): remove this lint after implementing this mod
 #![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
 
-use std::{sync::Arc};
+use std::sync::Arc;
 
 use super::{Block, SIZEOF_U16};
-use bytes::{BufMut, Buf};
+use bytes::{Buf, BufMut};
 
 /// Iterates on a block.
 pub struct BlockIterator {
@@ -76,7 +76,7 @@ impl BlockIterator {
         let offset = self.block.offsets[idx] as usize;
         self.seek_to_offset(offset);
         self.idx = idx;
-    } 
+    }
 
     /// help method to decord the kv
     fn seek_to_offset(&mut self, offset: usize) {
@@ -85,7 +85,7 @@ impl BlockIterator {
         let key_begin = offset + SIZEOF_U16;
         let key_end = key_begin + key_len as usize;
         let value_len = (&self.block.data[key_end..]).get_u16();
-        let value_begin = key_end + SIZEOF_U16; 
+        let value_begin = key_end + SIZEOF_U16;
         let value_end = value_begin + value_len as usize;
         // clear the dirty data
         self.key.clear();

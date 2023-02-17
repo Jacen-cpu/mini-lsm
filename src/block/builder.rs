@@ -1,6 +1,3 @@
-#![allow(unused_variables)] // TODO(you): remove this lint after implementing this mod
-#![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
-
 use bytes::BufMut;
 
 use super::{Block, SIZEOF_U16};
@@ -18,8 +15,8 @@ pub struct BlockBuilder {
 impl BlockBuilder {
     /// Creates a new block builder.
     pub fn new(block_size: usize) -> Self {
-        Self { 
-            offsets: Vec::new(), 
+        Self {
+            offsets: Vec::new(),
             data: Vec::new(),
             block_size,
         }
@@ -33,8 +30,10 @@ impl BlockBuilder {
     #[must_use]
     pub fn add(&mut self, key: &[u8], value: &[u8]) -> bool {
         // check size
-        if self.estimated_size() + key.len() + value.len() + 3 * SIZEOF_U16 > self.block_size 
-            && !self.is_empty() { // 4 + 3
+        if self.estimated_size() + key.len() + value.len() + 3 * SIZEOF_U16 > self.block_size
+            && !self.is_empty()
+        {
+            // 4 + 3
             return false;
         }
         // append offset in offset vec
