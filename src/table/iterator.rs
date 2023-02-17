@@ -3,7 +3,10 @@ use std::sync::Arc;
 use anyhow::Result;
 
 use super::SsTable;
-use crate::{iterators::StorageIterator, block::{BlockIterator, Block}};
+use crate::{
+    block::{Block, BlockIterator},
+    iterators::StorageIterator,
+};
 
 /// An iterator over the contents of an SSTable.
 pub struct SsTableIterator {
@@ -55,26 +58,29 @@ impl SsTableIterator {
             let first_key = &metas[mid].first_key[..];
             match first_key.cmp(key) {
                 std::cmp::Ordering::Less => low = mid,
-                std::cmp::Ordering::Greater => high = mid - 1,
+                std::cmp::Ordering::Greater => high = mid,
                 std::cmp::Ordering::Equal => {
                     self.seek_to_block(mid)?;
                     self.block_iter.seek_to_key(key);
                     return Ok(());
-                },
+                }
             }
         }
         self.seek_to_block(low)?;
-        self.block_iter.seek_to_key(key);
-        if !self.block_iter.is_valid() {
-            self.seek_to_block(high)?;
+        if self.is_valid {
             self.block_iter.seek_to_key(key);
+            if !self.block_iter.is_valid() {
+                self.seek_to_block(high)?;
+                self.block_iter.seek_to_key(key);
+            }
+            // assert!(self.block_iter.is_valid());
         }
-        assert!(self.block_iter.is_valid());
         Ok(())
     }
-    
-    /// Seek to the target block 
+
+    /// Seek to the target block
     pub fn seek_to_block(&mut self, idx: usize) -> Result<()> {
+        self.is_valid = true;
         if idx == self.idx {
             return Ok(());
         }
@@ -87,18 +93,20 @@ impl SsTableIterator {
         Ok(())
     }
 
-    /// Seek the target block iter and return it 
+    /// Seek the target block iter and return it
     pub fn seek_block_iter(idx: usize, table: &Arc<SsTable>) -> Result<BlockIterator> {
         let metas = &table.block_metas;
-        let block_end= metas[idx].offset as u64;
+        let block_end = metas[idx].offset as u64;
         let block_begin = if idx > 0 {
-            metas[idx - 1].offset as u64 
+            metas[idx - 1].offset as u64
         } else {
             0 as u64
         };
         let block_len = block_end - block_begin;
         let block = table.file.read(block_begin, block_len)?;
-        Ok(BlockIterator::create_and_seek_to_first(Arc::new(Block::decode(&block))))
+        Ok(BlockIterator::create_and_seek_to_first(Arc::new(
+            Block::decode(&block),
+        )))
     }
 }
 

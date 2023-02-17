@@ -4,14 +4,14 @@ use std::sync::Arc;
 use anyhow::Result;
 use bytes::BufMut;
 
-use super::{BlockMeta, SsTable, FileObject};
-use crate::{lsm_storage::BlockCache, block::BlockBuilder};
+use super::{BlockMeta, FileObject, SsTable};
+use crate::{block::BlockBuilder, lsm_storage::BlockCache};
 
 /// Builds an SSTable from key-value pairs.
 pub struct SsTableBuilder {
     // blocks vec
     data: Vec<u8>,
-    // block meta 
+    // block meta
     pub(super) meta: Vec<BlockMeta>,
     // temple block builder
     block_builder: BlockBuilder,
@@ -39,19 +39,20 @@ impl SsTableBuilder {
             self.first_key = key.to_vec();
         }
         if !self.block_builder.add(key, value) {
-        // finish a block
+            // finish a block
             self.finish_block();
             assert!(self.block_builder.add(key, value));
             self.first_key = key.to_vec();
         }
     }
-    
+
     fn finish_block(&mut self) {
-        let builder = std::mem::replace(&mut self.block_builder, BlockBuilder::new(self.block_size));
+        let builder =
+            std::mem::replace(&mut self.block_builder, BlockBuilder::new(self.block_size));
         let encode_block = builder.build().encode();
         self.data.extend(encode_block);
-        self.meta.push(BlockMeta { 
-            offset: self.data.len(), 
+        self.meta.push(BlockMeta {
+            offset: self.data.len(),
             first_key: std::mem::take(&mut self.first_key).into(),
         });
     }

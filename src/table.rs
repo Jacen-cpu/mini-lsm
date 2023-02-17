@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 pub use builder::SsTableBuilder;
-use bytes::{Buf, Bytes, BufMut};
+use bytes::{Buf, BufMut, Bytes};
 pub use iterator::SsTableIterator;
 
 use crate::block::Block;
@@ -25,10 +25,7 @@ pub struct BlockMeta {
 
 impl BlockMeta {
     /// Encode block meta to a buffer.
-    pub fn encode_block_meta(
-        block_meta: &[BlockMeta],
-        buf: &mut Vec<u8>,
-    ) {
+    pub fn encode_block_meta(block_meta: &[BlockMeta], buf: &mut Vec<u8>) {
         let mut estimated_size = 0;
         for meta in block_meta {
             estimated_size += std::mem::size_of::<u32>();
@@ -53,7 +50,10 @@ impl BlockMeta {
             let offset = buf.get_u32() as usize;
             let key_len = buf.get_u16() as usize;
             let key = buf.copy_to_bytes(key_len);
-            metas.push(BlockMeta { offset: offset, first_key: key });
+            metas.push(BlockMeta {
+                offset: offset,
+                first_key: key,
+            });
         }
         metas
     }
